@@ -5,11 +5,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
       <Sidebar />
       <div style={{
-        marginLeft: '200px',
+        marginLeft: 'var(--sidebar-w, 200px)',
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
+        transition: 'margin-left 0.2s ease',
       }}>
         {children}
       </div>
