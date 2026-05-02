@@ -7,7 +7,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [apiUrl, setApiUrl] = useState('https://motorshow.uk.com')
+  const [apiUrl, setApiUrl] = useState('https://api.seoclub8386.com')
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
 
