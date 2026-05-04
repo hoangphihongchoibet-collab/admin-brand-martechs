@@ -17,12 +17,14 @@ export default function BannersPage() {
   const [dragOver, setDragOver] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [form, setForm] = useState({ id: '', grp: 'homepage', brand_id: '', click_url: '' })
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ id: '', click_url: '', brand_id: '', sort_order: 0 })
   const [editPreview, setEditPreview] = useState<string | null>(null)
+  const [editFile, setEditFile] = useState<File | null>(null)
   const editFileRef = useRef<HTMLInputElement>(null)
 
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -64,6 +66,11 @@ export default function BannersPage() {
   }
 
   const handleFile = (file: File, isEdit = false) => {
+    if (isEdit) {
+      setEditFile(file)
+    } else {
+      setSelectedFile(file)
+    }
     const reader = new FileReader()
     reader.onload = e => isEdit
       ? setEditPreview(e.target?.result as string)
@@ -72,15 +79,9 @@ export default function BannersPage() {
   }
 
   const upload = async () => {
-  console.log('form.id:', form.id)
-  console.log('form.click_url:', form.click_url)
-  console.log('fileRef:', fileRef.current)
-  console.log('files:', fileRef.current?.files)
-  console.log('file[0]:', fileRef.current?.files?.[0])
-  
-  if (!form.id || !form.click_url || !fileRef.current?.files?.[0]) {
-    return showMsg('Vui lòng điền ID, link và chọn ảnh!', true)
-  }
+    if (!form.id || !form.click_url || !selectedFile) {
+      return showMsg('Vui lòng điền ID, link và chọn ảnh!', true)
+    }
     setSaving(true)
     try {
       const fd = new FormData()
@@ -89,11 +90,12 @@ export default function BannersPage() {
       if (form.brand_id) fd.append('brand_id', form.brand_id)
       fd.append('click_url', form.click_url)
       fd.append('sort_order', String(banners.filter(b => b.grp === form.grp).length))
-      fd.append('image', fileRef.current.files[0])
+      fd.append('image', selectedFile)
       const res = await bannerApi.create(fd)
       if (!res.success) throw new Error(res.message)
       setForm({ id: '', grp: activeGroup, brand_id: '', click_url: '' })
       setUploadPreview(null)
+      setSelectedFile(null)
       if (fileRef.current) fileRef.current.value = ''
       setShowUpload(false)
       setActiveGroup(form.grp)
@@ -110,6 +112,7 @@ export default function BannersPage() {
     setEditingId(b.id)
     setEditForm({ id: b.id, click_url: b.click_url, brand_id: b.brand_id || '', sort_order: b.sort_order })
     setEditPreview(null)
+    setEditFile(null)
     if (editFileRef.current) editFileRef.current.value = ''
   }
 
@@ -122,13 +125,14 @@ export default function BannersPage() {
         sort_order: editForm.sort_order,
       })
       if (!res.success) throw new Error(res.message)
-      if (editFileRef.current?.files?.[0]) {
+      if (editFile) {
         const fd = new FormData()
-        fd.append('image', editFileRef.current.files[0])
+        fd.append('image', editFile)
         await bannerApi.updateImage(editForm.id !== oldId ? editForm.id : oldId, fd)
       }
       setEditingId(null)
       setEditPreview(null)
+      setEditFile(null)
       showMsg('Đã cập nhật!')
       load()
     } catch (e: any) {
@@ -163,7 +167,6 @@ export default function BannersPage() {
 
   return (
     <>
-      {/* Lightbox */}
       {lightbox && (
         <div
           onClick={() => setLightbox(null)}
@@ -222,7 +225,6 @@ export default function BannersPage() {
       />
       <main style={{ padding: '20px 24px', flex: 1 }}>
 
-        {/* Alerts */}
         {error && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--danger-light)', border: '1px solid var(--danger-border)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', marginBottom: '16px', fontSize: '13px', color: 'var(--danger)' }}>
             <AlertCircle size={14} style={{ flexShrink: 0 }} /> {error}
@@ -234,14 +236,12 @@ export default function BannersPage() {
           </div>
         )}
 
-        {/* Upload Panel */}
         {showUpload && (
           <div style={{ background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px 22px', marginBottom: '20px', boxShadow: 'var(--shadow)' }}>
             <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
               <Upload size={14} color="var(--accent)" /> Upload Banner mới
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-              {/* Left: fields */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
@@ -274,7 +274,6 @@ export default function BannersPage() {
                 </div>
               </div>
 
-              {/* Right: image upload */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>Ảnh <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <div
@@ -323,7 +322,6 @@ export default function BannersPage() {
           </div>
         )}
 
-        {/* Tabs + Search */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: '6px' }}>
             {GROUPS.map(g => {
@@ -362,7 +360,6 @@ export default function BannersPage() {
           </div>
         </div>
 
-        {/* Edit Panel */}
         {editingId && (() => {
           return (
             <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 'var(--radius-lg)', padding: '16px 18px', marginBottom: '16px' }}>
@@ -370,7 +367,7 @@ export default function BannersPage() {
                 <Pencil size={13} color="#2563EB" />
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#1D4ED8' }}>Sửa banner:</span>
                 <code style={{ background: '#DBEAFE', color: '#1D4ED8', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontFamily: 'JetBrains Mono, monospace' }}>{editingId}</code>
-                <button onClick={() => { setEditingId(null); setEditPreview(null) }} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
+                <button onClick={() => { setEditingId(null); setEditPreview(null); setEditFile(null) }} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
                   <X size={16} />
                 </button>
               </div>
@@ -425,7 +422,6 @@ export default function BannersPage() {
           )
         })()}
 
-        {/* Banner Grid */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)', fontSize: '13px' }}>Đang tải...</div>
         ) : filtered.length === 0 ? (
@@ -458,7 +454,6 @@ export default function BannersPage() {
                 onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.boxShadow = 'var(--shadow-md)'; el.style.transform = 'translateY(-1px)' }}
                 onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.boxShadow = 'var(--shadow-sm)'; el.style.transform = 'translateY(0)' }}
               >
-                {/* Image area */}
                 <div
                   style={{ position: 'relative', paddingTop: '56.25%', background: '#0f172a', cursor: 'zoom-in' }}
                   onClick={() => setLightbox(banner.image_url)}
@@ -469,7 +464,6 @@ export default function BannersPage() {
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }}
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                   />
-                  {/* Hover overlay */}
                   <div
                     style={{
                       position: 'absolute', inset: 0,
@@ -502,7 +496,6 @@ export default function BannersPage() {
                   </div>
                 </div>
 
-                {/* Card info */}
                 <div style={{ padding: '10px 12px' }}>
                   <code style={{ display: 'block', fontSize: '11px', color: '#2563EB', fontFamily: 'JetBrains Mono, monospace', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {banner.id}
